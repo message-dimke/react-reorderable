@@ -6,10 +6,10 @@ var React = (typeof window !== "undefined" ? window['React'] : typeof global !==
 var findDOMNode = (typeof window !== "undefined" ? window['ReactDOM'] : typeof global !== "undefined" ? global['ReactDOM'] : null).findDOMNode;
 var ReactDrag = (typeof window !== "undefined" ? window['ReactDrag'] : typeof global !== "undefined" ? global['ReactDrag'] : null);
 
-function getClosestReorderable(el) {
+function getClosestReorderable(el, itemClassName) {
   while (el) {
     if (el.className &&
-        el.className.indexOf('react-reorderable-item') >= 0) {
+        el.className.indexOf(itemClassName) >= 0) {
       return el;
     }
     el = el.parentNode;
@@ -99,7 +99,7 @@ function getSiblingNode(e, node, mode) {
   return result;
 }
 
-function indexChildren(children) {
+function indexChildren(children, itemClassName) {
   var prefix = 'node-';
   var map = {};
   var ids = [];
@@ -108,7 +108,7 @@ function indexChildren(children) {
     var id = prefix + (i + 1);
     ids.push(id);
     children[i] = React.createElement('div', {
-      className: 'react-reorderable-item',
+      className: itemClassName,
       key: id,
       'data-reorderable-key': id
     }, children[i]);
@@ -155,7 +155,7 @@ var ReactReorderable = React.createClass({
   },
   componentWillReceiveProps: function (nextProps) {
     if (nextProps.children) {
-      var res = indexChildren(nextProps.children);
+      var res = indexChildren(nextProps.children, this.props.itemClassName);
       this.setState({
         order: res.ids,
         reorderableMap: res.map
@@ -163,7 +163,7 @@ var ReactReorderable = React.createClass({
     }
   },
   getInitialState: function () {
-    var res = indexChildren(this.props.children);
+    var res = indexChildren(this.props.children, this.props.itemClassName);
     return {
       order: res.ids,
       startPosition: null,
@@ -186,7 +186,7 @@ var ReactReorderable = React.createClass({
 
     if (sibling && sibling.node) {
       var oldOrder = this.state.order.slice();
-      var order = getNodesOrder(getClosestReorderable(handle), sibling, this.state.order);
+      var order = getNodesOrder(getClosestReorderable(handle, this.props.itemClassName), sibling, this.state.order);
       var changed = false;
       for (var i = 0; i < order.length && !changed; i += 1) {
         if (order[i] !== oldOrder[i]) {
@@ -207,6 +207,7 @@ var ReactReorderable = React.createClass({
     var position;
 
     if (!this.props.handle || is(e.target, this.props.handle)) {
+      e.stopPropagation();
       position = getControlPosition(e);
 
       this.setState({
@@ -235,7 +236,7 @@ var ReactReorderable = React.createClass({
 
       if (Math.abs(position.clientX - initial.x) >= 5 ||
           Math.abs(position.clientY - initial.y) >= 5) {
-        var node = getClosestReorderable(e.target);
+        var node = getClosestReorderable(e.target, this.props.itemClassName);
         var nativeEvent = e.nativeEvent;
         var id = node.getAttribute('data-reorderable-key');
         // React resets the event's properties
@@ -259,7 +260,7 @@ var ReactReorderable = React.createClass({
     var children = this.state.order.map(function (id) {
       var className = (this.state.activeItem) ? 'noselect ' : '';
       if (this.state.activeItem === id) {
-        className += 'react-reorderable-item-active';
+        className += this.props.activeItemClassName;
       }
       var oldClass = this.state.reorderableMap[id].props.className || '';
       if (oldClass) {
@@ -303,6 +304,8 @@ var ReactReorderable = React.createClass({
 });
 
 ReactReorderable.propTypes = {
+  itemClassName: React.PropTypes.string,
+  activeItemClassName: React.PropTypes.string,
   onDragStart: React.PropTypes.func,
   onDrag: React.PropTypes.func,
   onDrop: React.PropTypes.func,
@@ -310,6 +313,8 @@ ReactReorderable.propTypes = {
 };
 
 ReactReorderable.defaultProps = {
+  itemClassName: "react-reorderable-item",
+  activeItemClassName: "react-reorderable-item-active",
   onDragStart: function () {},
   onDrag: function () {},
   onDrop: function () {},
