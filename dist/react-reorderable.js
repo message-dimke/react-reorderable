@@ -207,7 +207,12 @@ var ReactReorderable = React.createClass({
     var position;
 
     if (!this.props.handle || is(e.target, this.props.handle)) {
-      e.stopPropagation();
+      //e.stopPropagation();
+      if(e.stopPropagation) e.stopPropagation();
+      if(e.preventDefault) e.preventDefault();
+      e.cancelBubble = true;
+      e.returnValue = false;
+
       position = getControlPosition(e);
 
       this.setState({
